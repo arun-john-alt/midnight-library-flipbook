@@ -53,6 +53,7 @@ test('offline shell and read assets load after the network is unavailable', asyn
   const h = harness(); await h.event('install'); await h.event('activate'); assert(h.claimed()); h.offline();
   const page = await h.request('./', 'navigate'); assert.equal(page.status, 200); assert((await page.text()).includes('index.html'));
   const script = await h.request('reader.js?v=quality1'); assert.equal(script.status, 200);
+  const cover = await h.request('pages/001.webp'); assert.equal(cover.status, 200);
 });
 test('a successful original page is cached; failed navigation cannot replace the saved shell', async () => {
   const h = harness(); await h.event('install');

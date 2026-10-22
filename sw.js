@@ -36,7 +36,7 @@ self.addEventListener('fetch', event => {
   const images = /\/pages\/\d{3}\.webp$/.test(url.pathname);
   event.respondWith((async () => {
     const cache = await caches.open(images ? PAGES : SHELL);
-    const cached = await cache.match(request, { ignoreSearch: images });
+    const cached = await cache.match(request, { ignoreSearch: images }) || (images ? await (await caches.open(SHELL)).match(request, { ignoreSearch: true }) : undefined);
     if (cached) return cached;
     const response = await fetch(request);
     if (response.ok) { try { await cache.put(request, response.clone()); } catch {} }
