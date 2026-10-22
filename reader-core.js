@@ -16,7 +16,7 @@
   function state(raw, blocks) {
     const layouts = ['auto', 'text', 'original', 'spread'];
     const layout = raw.layout === 'single' ? 'original' : layouts.includes(raw.layout) ? raw.layout : 'auto';
-    const marks = Array.isArray(raw.marks) ? raw.marks.slice(0, 300).map(mark => {
+    const marks = Array.isArray(raw.marks) ? raw.marks.slice(0, 2000).map(mark => {
       if (Number.isInteger(mark) && mark >= 1 && mark <= 276) return mark;
       return anchor(mark, blocks);
     }).filter(Boolean) : [];
