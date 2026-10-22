@@ -88,7 +88,7 @@ async function paginate(version, requestedFont) {
     return entries;
   } finally { measure.remove(); }
 }
-function locate(n,a){if(a&&a.source===n&&a.block!==undefined){const found=readingPages.findIndex(e=>!e.image&&e.parts.some(p=>p.block===a.block&&p.from<=a.word&&p.to>a.word));if(found>=0)return found}const heading=readingPages.findIndex(e=>!e.image&&e.parts.some(p=>p.source===n&&p.type==='h'));if(heading>=0)return heading;const containing=readingPages.findIndex(e=>e.image?e.source===n:e.parts.some(p=>p.source===n));if(containing>=0)return containing;const exact=readingPages.findIndex(e=>e.source>=n);return exact<0?readingPages.length-1:exact}
+function locate(n,a){if(a&&a.source===n&&a.block!==undefined){const found=readingPages.findIndex(e=>!e.image&&e.parts.some(p=>p.block===a.block&&p.from<=a.word&&p.to>a.word));if(found>=0)return found}const heading=readingPages.findIndex(e=>!e.image&&e.parts.some(p=>p.source===n&&p.type==='h'));if(heading>=0)return heading;const containing=readingPages.findIndex(e=>e.image?e.source===n:e.parts.some(p=>ReaderCore.coversSource(p,n)));if(containing>=0)return containing;const exact=readingPages.findIndex(e=>e.source>=n);return exact<0?readingPages.length-1:exact}
 function currentAnchor(){return reading?{source:page,block:readingPages[readingIndex].block,word:readingPages[readingIndex].word}:null}
 function markMatches(mark){return typeof mark==='number'?mark===page:mark.source===page&&(!reading||mark.block===readingPages[readingIndex].block&&mark.word===readingPages[readingIndex].word)}
 function sync(preserve = false) {
@@ -182,7 +182,7 @@ async function build() {
     }
   } finally { if (version === buildVersion) { building = false; setBusy(false); } }
 }
-function entryAnchor(entry,n){if(entry.image)return {source:n};const p=entry.parts.find(p=>p.source===n&&p.type==='h')||entry.parts.find(p=>p.source===n)||entry.parts[0];return {source:n,block:p.block,word:p.from}}
+function entryAnchor(entry,n){if(entry.image)return {source:n};const p=entry.parts.find(p=>p.source===n&&p.type==='h')||entry.parts.find(p=>ReaderCore.coversSource(p,n))||entry.parts[0];const range=p.ranges?.find(r=>r.source===n&&r.to>p.from&&r.from<p.to);return {source:n,block:p.block,word:range?Math.max(p.from,range.from):p.from}}
 function turn(direction) {
   clearTimeout(tapTimer); lastTap = null;
   if (reading) {

@@ -24,6 +24,8 @@
       theme: ['light', 'sepia', 'dark'].includes(raw.theme) ? raw.theme : 'light',
       font: Math.round(number(raw.font, 20, 17, 28)), marks, anchor: anchor(raw.anchor, blocks) };
   }
+  function sourceAt(block, word) { return block.ranges?.find(range => range.from <= word && range.to > word)?.source || block.source; }
+  function coversSource(part, source) { return part.ranges ? part.ranges.some(range => range.source === source && range.to > part.from && range.from < part.to) : part.source === source; }
   function find(blocks, query, limit = 30) {
     query = String(query).trim().slice(0, 120);
     if (query.length < 2) return { matches: [], total: 0 };
@@ -38,7 +40,7 @@
           const prefix = text.slice(0, found);
           let word = (prefix.match(/\S+/g) || []).length;
           if (found && /\S/.test(text[found - 1]) && /\S/.test(text[found])) word--;
-          matches.push({ source: block.source, block: index, word: Math.max(0, word),
+          matches.push({ source: sourceAt(block, Math.max(0, word)), block: index, word: Math.max(0, word),
             excerpt: (found > 50 ? '…' : '') + text.slice(Math.max(0, found - 50), Math.min(text.length, found + query.length + 85)) + (found + query.length + 85 < text.length ? '…' : '') });
         }
         offset = found + Math.max(1, needle.length);
@@ -47,7 +49,7 @@
     return { matches, total };
   }
   function visibleSource(requested, first, count) { return requested >= first && requested < first + count ? requested : first; }
-  const api = { number, anchor, state, find, visibleSource };
+  const api = { number, anchor, state, find, visibleSource, sourceAt, coversSource };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.ReaderCore = api;
 })(typeof window === 'object' ? window : this);

@@ -20,7 +20,7 @@
       }
       while (start < words.length) {
         const make = end => ({ ...block, block: index, from: start, to: end,
-          text: words.slice(start, end).join(' '), continued: start > 0 });
+          text: words.slice(start, end).join(' '), continued: start > 0, source: block.ranges?.find(range => range.from <= start && range.to > start)?.source || block.source });
         const whole = make(words.length);
         if (fits([...parts, whole])) { parts.push(whole); break; }
         let lo = 0, hi = words.length - start;

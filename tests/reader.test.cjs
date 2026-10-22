@@ -125,3 +125,19 @@ test('switching from a spread preserves a requested right-hand page', () => {
   assert.equal(Core.visibleSource(12,13,2),13);
   assert.equal(Core.visibleSource(12,12,1),12);
 });
+
+test('search and reflow retain exact references across original PDF page breaks', () => {
+  const block = { type: 'p', source: 12, text: 'one two three four', ranges: [{ source: 12, from: 0, to: 2 }, { source: 13, from: 2, to: 4 }] };
+  assert.equal(Core.find([block], 'three').matches[0].source, 13);
+  const pages = Pagination.paginate([block], parts => words(parts) <= 2);
+  assert.equal(pages[0].source, 12); assert.equal(pages[1].source, 13);
+  assert.equal(Core.coversSource(pages[0].parts[0], 13), false);
+  assert.equal(Core.coversSource(pages[1].parts[0], 13), true);
+});
+test('source ranges are contiguous and cover every word in merged paragraphs', () => {
+  for (const block of blocks.filter(block => block.ranges)) {
+    let end = 0;
+    for (const range of block.ranges) { assert.equal(range.from, end); assert(range.to > range.from); end = range.to; }
+    assert.equal(end, block.text.split(/\s+/).length);
+  }
+});
