@@ -46,7 +46,8 @@
     });
     return { matches, total };
   }
-  const api = { number, anchor, state, find };
+  function visibleSource(requested, first, count) { return requested >= first && requested < first + count ? requested : first; }
+  const api = { number, anchor, state, find, visibleSource };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.ReaderCore = api;
 })(typeof window === 'object' ? window : this);

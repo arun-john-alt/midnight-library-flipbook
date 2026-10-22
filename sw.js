@@ -1,10 +1,10 @@
 /* Only caches this reader's own files. No tracking or external requests. */
-const VERSION = 'quality1';
+const VERSION = 'quality2';
 const SHELL = 'midnight-reader-shell-' + VERSION;
 const PAGES = 'midnight-reader-pages';
 const ROOT = new URL('./', self.location.href);
-const FILES = ['index.html', 'reader.css?v=quality1', 'reader.js?v=quality1',
-  'reader-core.js?v=quality1', 'reader-pagination.js?v=quality1', 'gesture-math.js?v=1',
+const FILES = ['index.html', 'reader.css?v=quality2', 'reader.js?v=quality2',
+  'reader-core.js?v=quality2', 'reader-pagination.js?v=quality2', 'gesture-math.js?v=1',
   'book-text.js?v=1', 'vendor/page-flip.browser.js?v=reader2', 'manifest.webmanifest',
   'icon.svg', 'icon-192.png', 'icon-512.png', 'pages/001.webp'];
 self.addEventListener('install', event => {

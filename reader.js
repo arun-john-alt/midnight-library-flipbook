@@ -166,12 +166,13 @@ async function build() {
       for (const leaf of host.children) leaf.hidden = Number(leaf.dataset.number) < page || Number(leaf.dataset.number) >= page + (wide() ? 2 : 1);
       hydrate(page); paintZoom(true); sync(); return;
     }
+    const requestedSource = page; let initializing = true;
     flip = new St.PageFlip(host, { width: w, height: h, size: 'fixed', minWidth: 1, minHeight: 1, maxWidth: 10000, maxHeight: 10000,
       autoSize: false, usePortrait: !wide(), showCover: false, startPage: page - 1, flippingTime: reduced() ? 1 : 300,
       maxShadowOpacity: .12, drawShadow: true, mobileScrollSupport: true, swipeDistance: 24, showPageCorners: false,
       disableFlipByClick: true, useMouseEvents: true, clickEventForward: false });
-    flip.on('flip', event => { page = event.data + 1; hydrate(page); sync(); });
-    flip.on('init', () => { page = flip.getCurrentPageIndex() + 1; sync(); paintZoom(true); });
+    flip.on('flip', event => { const first = event.data + 1; page = initializing ? ReaderCore.visibleSource(requestedSource, first, wide() ? 2 : 1) : first; hydrate(page); sync(); });
+    flip.on('init', () => { page = ReaderCore.visibleSource(requestedSource, flip.getCurrentPageIndex() + 1, wide() ? 2 : 1); initializing = false; sync(); paintZoom(true); });
     flip.on('changeState', event => { if (event.data === 'read') drainTurns(); });
     flip.loadFromHTML(host.querySelectorAll('.leaf')); hydrate(page); paintZoom(true);
   } catch (error) {
@@ -198,7 +199,7 @@ function turn(direction) {
     view = { scale: view.scale, x: 0, y: 0 }; paintZoom(true);
   } else direction > 0 ? flip.flipNext('bottom') : flip.flipPrev('bottom');
 }
-function jump(n,a=null){n=clamp(n);if(reading){readingIndex=locate(n,a);anchor=a||entryAnchor(readingPages[readingIndex],n);view={scale:view.scale,x:0,y:0};renderReading(0,true);return}cancelTurns();if(!flip){page=n;build();return}flip.getRender().finishAnimation();hydrate(n);flip.turnToPage(n-1);page=flip.getCurrentPageIndex()+1;sync()}
+function jump(n,a=null){n=clamp(n);if(reading){readingIndex=locate(n,a);anchor=a||entryAnchor(readingPages[readingIndex],n);view={scale:view.scale,x:0,y:0};renderReading(0,true);return}cancelTurns();if(!flip){page=n;build();return}flip.getRender().finishAnimation();hydrate(n);flip.turnToPage(n-1);page=ReaderCore.visibleSource(n,flip.getCurrentPageIndex()+1,wide()?2:1);sync()}
 function showMenu(tab = 'reading') {
   clearTimeout(tapTimer); lastTap = null; cancelTurns();
   if (flip) flip.getRender().finishAnimation();
@@ -214,7 +215,7 @@ function setTab(name) {
 }
 function chapter(label, source, parent, savedAnchor) {
   const button = document.createElement('button'); button.className = 'chapter'; button.textContent = label;
-  button.onclick = () => { jump(source, savedAnchor); hideMenu(); }; parent.append(button);
+  button.onclick = () => { jump(source, savedAnchor); hideMenu(); }; parent.append(button); return button;
 }
 CHAPTERS.forEach(([title, n]) => chapter(title, n, $('chapters')));
 function renderSaved() {
@@ -223,7 +224,8 @@ function renderSaved() {
   if (!marks.length) { const empty = document.createElement('p'); empty.className = 'empty-state'; empty.textContent = 'Keep a passage close. Bookmark a page from the Reading tab to find it here.'; $('saved').append(empty); return; }
   marks.forEach((mark, index) => {
     const source = typeof mark === 'number' ? mark : mark.source, row = document.createElement('div'); row.className = 'saved-row';
-    chapter(chapterName(source) + ' · PDF ' + source, source, row, typeof mark === 'number' ? null : mark);
+    const savedButton = chapter(chapterName(source) + ' · PDF ' + source, source, row, typeof mark === 'number' ? null : mark);
+    if (typeof mark === 'object' && TEXT_BLOCKS[mark.block]) { const block = TEXT_BLOCKS[mark.block]; const text = block.type === 'h' ? (TEXT_BLOCKS[mark.block + 1]?.text || block.text) : block.text; const preview = document.createElement('span'); preview.className = 'bookmark-preview'; preview.textContent = text.split(/\s+/).slice(block.type === 'h' ? 0 : mark.word, (block.type === 'h' ? 0 : mark.word) + 14).join(' ') + '…'; savedButton.append(preview); }
     const remove = document.createElement('button'); remove.className = 'remove-bookmark'; remove.textContent = '×'; remove.setAttribute('aria-label', 'Remove bookmark for ' + chapterName(source));
     remove.onclick = () => { marks.splice(index, 1); store.set('marks', marks); renderSaved(); sync(true); }; row.append(remove); $('saved').append(row);
   });
@@ -314,12 +316,14 @@ function setupOffline() {
     registration = reg; showUpdate();
     reg.addEventListener('updatefound', () => reg.installing?.addEventListener('statechange', showUpdate));
     await Promise.race([navigator.serviceWorker.ready, new Promise((_, reject) => setTimeout(() => reject(new Error('Offline setup timed out')), 15000))]);
-    button.disabled = false;
-    state.textContent = 'Reading text is ready offline. Save the full book to include every original PDF page (about 45 MB).';
-  }).catch(() => { state.textContent = 'Offline setup could not finish. You can keep reading online.'; });
+    const savedPages = await (await caches.open('midnight-reader-pages')).keys();
+    const count = new Set(savedPages.map(request => Number(new URL(request.url).pathname.match(/\/pages\/(\d{3})\.webp$/)?.[1])).filter(n => n >= 1 && n <= 276)).size;
+    if (count === 276) { button.textContent = 'Full book saved'; button.disabled = true; state.textContent = 'The full book is saved for offline reading on this browser.'; }
+    else { button.disabled = false; state.textContent = 'Reading text is ready offline. Save the full book to include every original PDF page (about 45 MB).'; }
+  }).catch(() => { button.disabled = true; state.textContent = 'Offline setup could not finish. You can keep reading online.'; });
   let downloading = false;
   button.onclick = async () => {
-    if (downloading) return; downloading = true; button.disabled = true;
+    if (downloading) return; downloading = true; button.disabled = true; $('updateReader').disabled = true;
     let completed = 0, failed = 0, next = 1;
     try {
       const cache = await caches.open('midnight-reader-pages');
@@ -340,7 +344,7 @@ function setupOffline() {
       if (failed) { state.textContent = 'Saved ' + completed + ' pages. Reconnect and try again to finish the remaining pages.'; button.textContent = 'Finish offline download'; }
       else { state.textContent = 'The full book is saved for offline reading on this browser.'; button.textContent = 'Full book saved'; button.disabled = true; store.set('offline-book', true); }
     } catch { state.textContent = 'Your browser could not save the book. Check available storage and try again.'; }
-    finally { downloading = false; if (completed < 276) button.disabled = false; }
+    finally { downloading = false; $('updateReader').disabled = false; if (completed < 276) button.disabled = false; }
   };
 }
 

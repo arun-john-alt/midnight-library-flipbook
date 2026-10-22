@@ -118,3 +118,10 @@ test('inline touch pinch does not flip, quick zoomed swipes turn, slow pans do n
 test('all script files parse', () => {
   for (const name of ['reader.js', 'reader-core.js', 'reader-pagination.js', 'gesture-math.js', 'book-text.js', 'sw.js']) new vm.Script(fs.readFileSync(path.join(ROOT, name), 'utf8'), { filename: name });
 });
+
+test('switching from a spread preserves a requested right-hand page', () => {
+  assert.equal(Core.visibleSource(12,11,2),12);
+  assert.equal(Core.visibleSource(29,29,2),29);
+  assert.equal(Core.visibleSource(12,13,2),13);
+  assert.equal(Core.visibleSource(12,12,1),12);
+});

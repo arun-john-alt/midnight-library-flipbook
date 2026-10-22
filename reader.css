@@ -21,3 +21,5 @@ dialog{padding:0;border-radius:18px;width:min(480px,calc(100vw - 24px));max-heig
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 
 html[data-theme=dark] body{--paper:#171817;--text:#e1ddd3;--ui:#222421;--line:#41443e;--mark:#675820;--muted:#a5a89d;color-scheme:dark}html[data-theme=sepia] body{--paper:#eee4cc;--text:#3f3527;--ui:#e5d8ba;--line:#c9b895;--mark:#d6bf79;--muted:#7e6a4e;color-scheme:light}
+
+.bookmark-preview{display:block;margin-top:5px;color:var(--muted);font:12px/1.5 Georgia,serif}
